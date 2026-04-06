@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Voice Number App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      padding: 40px;
+      background: #f5f5f5;
+    }
+
+    h2 {
+      font-size: 28px;
+    }
+
+    button {
+      padding: 15px 25px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      background: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #45a049;
+    }
+
+    #output {
+      margin-top: 20px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>🎤 Speak Numbers</h2>
+
+<button onclick="startListening()">Start Speaking</button>
+
+<p id="output"></p>
+
+<script>
+function startListening() {
+  const recognition = new webkitSpeechRecognition();
+  recognition.lang = "en-IN"; // Indian English
+  recognition.start();
+
+  recognition.onresult = function(event) {
+    let text = event.results[0][0].transcript;
+    document.getElementById("output").innerText = "You said: " + text;
+
+    let numbers = text.match(/\d+/g);
+
+    if (numbers && numbers.length >= 2) {
+      let num1 = parseInt(numbers[0]);
+      let num2 = parseInt(numbers[1]);
+
+      let result = (num1 * num2 * num2) / 16000000;
+      let rounded = Math.round(result);
+
+      alert(
+        "Number1: " + num1 +
+        "\nNumber2: " + num2 +
+        "\nResult: " + result +
+        "\nRounded: " + rounded
+      );
+
+      // 👉 Next step: send to backend / Google Sheets
+      fetch("https://script.google.com/macros/s/AKfycbz7sWZ6tZP1SXjGsGhOMCD4FraTZ9DEFx6u63qeePGSNKffoDZRyyWoa0WbcBXykv4G7Q/exec", {
+  method: "POST",
+  body: JSON.stringify({
+    num1: num1,
+    num2: num2
+  })
+})
+.then(res => res.text())
+.then(data => {
+  alert("✅ Data saved to Google Sheet!");
+})
+.catch(err => {
+  alert("❌ Error sending data");
+});
+    } else {
+      alert("❌ Couldn't detect two numbers");
+    }
+  };
+
+  recognition.onerror = function() {
+    alert("Error in speech recognition");
+  };
+}
+</script>
+
+</body>
+</html>
