@@ -3,99 +3,402 @@
 <head>
   <title>Voice Number App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
 
   <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: Arial;
+      font-family: 'Nunito', sans-serif;
+      background: #0f1e0f;
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 20% 20%, rgba(76,175,80,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 60% at 80% 80%, rgba(46,125,50,0.15) 0%, transparent 60%);
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 400px;
+      padding: 30px 20px;
       text-align: center;
-      padding: 40px;
-      background: #f5f5f5;
     }
 
     h2 {
-      font-size: 28px;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: #a5d6a7;
+      margin-bottom: 6px;
+      text-transform: uppercase;
     }
 
-    button {
-      padding: 15px 25px;
-      font-size: 18px;
+    .entry-counter {
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      color: #4CAF50;
+      letter-spacing: 2px;
+      margin-bottom: 36px;
+      min-height: 20px;
+    }
+
+    /* Mic button ring animation */
+    .mic-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .mic-wrapper::before,
+    .mic-wrapper::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid #4CAF50;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .mic-wrapper::before { width: 150px; height: 150px; }
+    .mic-wrapper::after  { width: 180px; height: 180px; }
+
+    .mic-wrapper.active::before { animation: ripple 1.4s ease-out infinite; }
+    .mic-wrapper.active::after  { animation: ripple 1.4s ease-out 0.4s infinite; }
+
+    @keyframes ripple {
+      0%   { opacity: 0.6; transform: scale(0.85); }
+      100% { opacity: 0;   transform: scale(1.15); }
+    }
+
+    .mic-btn {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
       border: none;
-      border-radius: 10px;
-      background: #4CAF50;
+      background: linear-gradient(145deg, #43a047, #2e7d32);
       color: white;
+      font-size: 38px;
       cursor: pointer;
+      box-shadow: 0 8px 24px rgba(76,175,80,0.4), 0 2px 8px rgba(0,0,0,0.4);
+      transition: transform 0.15s, box-shadow 0.15s;
+      position: relative;
+      z-index: 1;
     }
 
-    button:hover {
-      background: #45a049;
+    .mic-btn:active { transform: scale(0.94); }
+
+    .mic-btn.pulse {
+      animation: micPulse 1s ease-in-out infinite;
     }
 
-    #output {
-      margin-top: 20px;
-      font-size: 18px;
+    @keyframes micPulse {
+      0%, 100% { box-shadow: 0 8px 24px rgba(76,175,80,0.4), 0 2px 8px rgba(0,0,0,0.4); }
+      50%       { box-shadow: 0 8px 36px rgba(76,175,80,0.75), 0 2px 8px rgba(0,0,0,0.4); }
+    }
+
+    .status {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #c8e6c9;
+      min-height: 24px;
+      margin-bottom: 24px;
+    }
+
+    /* Stop button */
+    .stop-btn {
+      display: none;
+      margin: 0 auto 28px;
+      padding: 12px 36px;
+      border-radius: 50px;
+      border: 2px solid #ef5350;
+      background: transparent;
+      color: #ef5350;
+      font-family: 'Nunito', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, transform 0.15s;
+    }
+
+    .stop-btn:hover  { background: #ef5350; color: white; }
+    .stop-btn:active { transform: scale(0.96); }
+    .stop-btn.visible { display: block; }
+
+    /* Result card */
+    .card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(76,175,80,0.3);
+      padding: 20px 24px;
+      border-radius: 18px;
+      backdrop-filter: blur(10px);
+      display: none;
+      text-align: left;
+    }
+
+    .card.visible { display: block; animation: fadeUp 0.4s ease; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      font-size: 15px;
+    }
+
+    .row:last-child { border-bottom: none; }
+
+    .row .label {
+      color: #81c784;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .row .value {
+      font-family: 'Space Mono', monospace;
+      font-size: 15px;
+      color: #e8f5e9;
+    }
+
+    /* History list */
+    .history-title {
+      margin-top: 28px;
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: #4CAF50;
+      text-transform: uppercase;
+      text-align: left;
+      margin-bottom: 10px;
+      display: none;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .history-item {
+      background: rgba(76,175,80,0.08);
+      border: 1px solid rgba(76,175,80,0.15);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      color: #a5d6a7;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .history-item .hi-num { color: #fff; font-weight: 700; }
+    .history-item .hi-tag {
+      font-size: 10px;
+      background: rgba(76,175,80,0.2);
+      padding: 2px 8px;
+      border-radius: 20px;
+      color: #69f0ae;
     }
   </style>
 </head>
 
 <body>
+<div class="container">
+  <h2>🎤 Voice Number App</h2>
+  <div class="entry-counter" id="entryCounter"></div>
 
-<h2>🎤 Speak Numbers</h2>
+  <div class="mic-wrapper" id="micWrapper">
+    <button class="mic-btn" id="micBtn" onclick="startListening()">🎤</button>
+  </div>
 
-<button onclick="startListening()">Start Speaking</button>
+  <div class="status" id="status">Tap mic to start</div>
 
-<p id="output"></p>
+  <button class="stop-btn" id="stopBtn" onclick="stopListening()">⛔ Stop Session</button>
+
+  <div class="card" id="resultCard">
+    <div class="row"><span class="label">Number 1</span><span class="value" id="num1">—</span></div>
+    <div class="row"><span class="label">Number 2</span><span class="value" id="num2">—</span></div>
+    <div class="row"><span class="label">Result</span><span class="value" id="result">—</span></div>
+    <div class="row"><span class="label">Rounded</span><span class="value" id="rounded">—</span></div>
+  </div>
+
+  <div class="history-title" id="historyTitle">📋 Session Log</div>
+  <div class="history-list" id="historyList"></div>
+</div>
 
 <script>
+let recognition;
+let isListening = false;
+let entryCount = 0;
+let restartTimer = null;
+
+function setActive(active) {
+  document.getElementById('micWrapper').classList.toggle('active', active);
+  document.getElementById('micBtn').classList.toggle('pulse', active);
+}
+
 function startListening() {
-  const recognition = new webkitSpeechRecognition();
-  recognition.lang = "en-IN"; // Indian English
+  if (isListening) return;
+
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    document.getElementById('status').innerText = '❌ Browser not supported';
+    return;
+  }
+
+  recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+  recognition.lang = 'en-IN';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  isListening = true;
+  setActive(true);
+
+  document.getElementById('micBtn').disabled = true;
+  document.getElementById('stopBtn').classList.add('visible');
+  document.getElementById('status').innerText = '🎧 Listening... Speak two numbers';
+  updateCounter();
+
   recognition.start();
 
   recognition.onresult = function(event) {
-    let text = event.results[0][0].transcript;
-    document.getElementById("output").innerText = "You said: " + text;
-
-    let numbers = text.match(/\d+/g);
+    const text = event.results[0][0].transcript;
+    const numbers = text.match(/\d+/g);
 
     if (numbers && numbers.length >= 2) {
-      let num1 = parseInt(numbers[0]);
-      let num2 = parseInt(numbers[1]);
+      const num1 = parseInt(numbers[0]);
+      const num2 = parseInt(numbers[1]);
+      const result = (num1 * num2 * num2) / 16000000;
+      const rounded = Math.round(result);
 
-      let result = (num1 * num2 * num2) / 16000000;
-      let rounded = Math.round(result);
+      entryCount++;
 
-      alert(
-        "Number1: " + num1 +
-        "\nNumber2: " + num2 +
-        "\nResult: " + result +
-        "\nRounded: " + rounded
-      );
+      // Update current result card
+      document.getElementById('resultCard').className = 'card visible';
+      document.getElementById('num1').innerText = num1;
+      document.getElementById('num2').innerText = num2;
+      document.getElementById('result').innerText = result.toFixed(6);
+      document.getElementById('rounded').innerText = rounded;
 
-      // 👉 Next step: send to backend / Google Sheets
+      document.getElementById('status').innerText = '📡 Saving entry #' + entryCount + '...';
+      updateCounter();
+
+      // Add to history
+      addHistory(entryCount, num1, num2, rounded);
+
+      // Send to Google Sheets
       fetch("https://script.google.com/macros/s/AKfycbz7sWZ6tZP1SXjGsGhOMCD4FraTZ9DEFx6u63qeePGSNKffoDZRyyWoa0WbcBXykv4G7Q/exec", {
-  method: "POST",
-  body: JSON.stringify({
-    num1: num1,
-    num2: num2
-  })
-})
-.then(res => res.text())
-.then(data => {
-  alert("✅ Data saved to Google Sheet!");
-})
-.catch(err => {
-  alert("❌ Error sending data");
-});
+        method: "POST",
+        body: JSON.stringify({ num1, num2 })
+      })
+      .then(res => res.text())
+      .then(() => {
+        if (isListening) {
+          document.getElementById('status').innerText = '✅ Saved! Listening for next entry...';
+          scheduleRestart();
+        }
+      })
+      .catch(() => {
+        if (isListening) {
+          document.getElementById('status').innerText = '⚠️ Save failed. Listening again...';
+          scheduleRestart();
+        }
+      });
+
     } else {
-      alert("❌ Couldn't detect two numbers");
+      if (isListening) {
+        document.getElementById('status').innerText = '❌ Couldn\'t detect 2 numbers. Try again...';
+        scheduleRestart();
+      }
     }
   };
 
-  recognition.onerror = function() {
-    alert("Error in speech recognition");
+  recognition.onend = function() {
+    // Only auto-restart if we haven't scheduled a result-based restart
+    if (isListening && !restartTimer) {
+      scheduleRestart(300);
+    }
+  };
+
+  recognition.onerror = function(e) {
+    if (e.error === 'aborted' || !isListening) return;
+    document.getElementById('status').innerText = '⚠️ Mic error. Retrying...';
+    scheduleRestart(1000);
   };
 }
-</script>
 
+function scheduleRestart(delay = 1200) {
+  if (restartTimer) clearTimeout(restartTimer);
+  restartTimer = setTimeout(() => {
+    restartTimer = null;
+    if (isListening) {
+      try {
+        document.getElementById('status').innerText = '🎧 Listening... Speak two numbers';
+        recognition.start();
+      } catch(e) {
+        // recognition might already be starting
+      }
+    }
+  }, delay);
+}
+
+function stopListening() {
+  isListening = false;
+  if (restartTimer) { clearTimeout(restartTimer); restartTimer = null; }
+  if (recognition) { try { recognition.stop(); } catch(e) {} }
+
+  setActive(false);
+  document.getElementById('micBtn').disabled = false;
+  document.getElementById('stopBtn').classList.remove('visible');
+  document.getElementById('status').innerText = '⛔ Session stopped. ' + entryCount + ' entr' + (entryCount === 1 ? 'y' : 'ies') + ' saved.';
+  entryCount = 0;
+  updateCounter();
+}
+
+function updateCounter() {
+  const el = document.getElementById('entryCounter');
+  el.innerText = isListening
+    ? (entryCount > 0 ? 'ENTRIES SAVED: ' + entryCount : 'SESSION ACTIVE')
+    : '';
+}
+
+function addHistory(n, num1, num2, rounded) {
+  const title = document.getElementById('historyTitle');
+  const list  = document.getElementById('historyList');
+
+  title.style.display = 'block';
+
+  const item = document.createElement('div');
+  item.className = 'history-item';
+  item.innerHTML = `
+    <span><span class="hi-num">${num1}</span> × <span class="hi-num">${num2}</span> → <span class="hi-num">${rounded}</span></span>
+    <span class="hi-tag">#${n}</span>
+  `;
+  list.prepend(item);
+}
+</script>
 </body>
 </html>
